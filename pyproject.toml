@@ -1,0 +1,28 @@
+[project]
+name = "renfield-mcp-samsung"
+version = "0.1.0"
+description = "Dedicated MCP server for Samsung Smart TV (Tizen) control — websocket remote, apps, Wake-on-LAN, and DLNA media. Companion to renfield-mcp-dlna."
+requires-python = ">=3.10"
+dependencies = [
+    "samsungtvws[encrypted]>=2.7.0",
+    "mcp[cli]>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[project.scripts]
+renfield-mcp-samsung = "main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+include = ["main.py", "tv.py"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+token.json
+.venv/
+*.egg-info/
+.pytest_cache/
+*.json.tmp
