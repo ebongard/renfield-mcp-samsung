@@ -107,6 +107,20 @@ class TestNavigateAndSoap:
         assert tv._soap_value(xml, "CurrentVolume") == "33"
 
 
+# ── pairing-error classification ─────────────────────────────────
+class TestPairingError:
+    def test_timeout_is_pairing(self):
+        class WebSocketTimeoutException(Exception): ...
+        assert tv._is_pairing_error(WebSocketTimeoutException("Connection timed out"))
+
+    def test_unauthorized_is_pairing(self):
+        class UnauthorizedError(Exception): ...
+        assert tv._is_pairing_error(UnauthorizedError("{'event': 'ms.channel.unauthorized'}"))
+
+    def test_other_is_not_pairing(self):
+        assert not tv._is_pairing_error(ConnectionRefusedError("refused"))
+
+
 # ── config / env ─────────────────────────────────────────────────
 class TestConfig:
     def test_env_host_used(self, monkeypatch):

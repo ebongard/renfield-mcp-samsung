@@ -202,6 +202,17 @@ def wake_on_lan(mac: str) -> None:
         s.sendto(packet, ("255.255.255.255", 9))
 
 
+def _is_pairing_error(exc: Exception) -> bool:
+    """True if a :8002 failure is an authorization problem (TV awaiting/denying
+    the 'Allow' popup) rather than a genuine connection failure."""
+    name = type(exc).__name__.lower()
+    msg = str(exc).lower()
+    return (
+        "unauthor" in name or "unauthor" in msg
+        or "timeout" in name or "timed out" in msg
+    )
+
+
 # ── Main TV Client ──────────────────────────────────────────────
 
 
@@ -244,8 +255,23 @@ class SamsungTV:
             )
             self._ws.open()
             log.info("Connected via WSS:8002")
-        except Exception:
-            log.warning("WSS:8002 failed, trying WS:8001")
+        except Exception as e8002:
+            self._ws = None
+            # A timeout or "unauthorized" on 8002 is an AUTHORIZATION problem, not
+            # a wrong-port one: the TV won't show its "Allow" popup (or it wasn't
+            # approved). Falling back to legacy :8001 just yields a cryptic error,
+            # so surface the real, actionable cause instead.
+            if _is_pairing_error(e8002):
+                raise ConnectionError(
+                    f"Samsung pairing needed for {CLIENT_NAME!r}: approve the "
+                    f"'Allow' popup on the TV. Enable Settings -> General -> "
+                    f"External Device Manager -> Device Connect Manager -> "
+                    f"Access Notification (On), and pair from the Home screen. "
+                    f"(:8002 said: {type(e8002).__name__})"
+                ) from e8002
+            # Genuine connection failure (e.g. a pre-2016 TV without :8002) —
+            # try the legacy unencrypted remote channel.
+            log.warning("WSS:8002 failed (%s); trying legacy WS:8001", e8002)
             self._ws = SamsungTVWS(
                 host=ip, port=8001, token_file=token_file,
                 timeout=WS_TIMEOUT, name=CLIENT_NAME,
